@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Art Generation{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+            <div class="sidebar-sticky">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <img src="#" alt="Logo" style="width: 100%;"> <!-- Replace # with your logo URL -->
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Generate Art</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Archive</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Settings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout/">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
+            <h1>Art Generation</h1>
+            <form>
+                <!-- Image Loader -->
+                <div class="form-group">
+                    <label for="imageInput">Upload an image</label>
+                    <input type="file" class="form-control-file" id="imageInput">
+                </div>
+
+                <!-- Style Selector -->
+                <div class="form-group">
+                    <label for="styleSelect">Select a style</label>
+                    <select class="form-control" id="styleSelect">
+                        <option>Style 1</option>
+                        <option>Style 2</option>
+                        <option>Style 3</option>
+                        <!-- Add more options as needed -->
+                    </select>
+                </div>
+
+                <!-- Load Button -->
+                <button type="submit" class="btn btn-primary">Load</button>
+            </form>
+        </main>
+    </div>
+</div>
+{% endblock %}
