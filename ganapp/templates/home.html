@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 
 {% block title %}Art Generation{% endblock %}
-
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -31,27 +30,35 @@
         <!-- Main Content -->
         <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
             <h1>Art Generation</h1>
-            <form>
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
                 <!-- Image Loader -->
                 <div class="form-group">
-                    <label for="imageInput">Upload an image</label>
-                    <input type="file" class="form-control-file" id="imageInput">
-                </div>
-
-                <!-- Style Selector -->
-                <div class="form-group">
-                    <label for="styleSelect">Select a style</label>
-                    <select class="form-control" id="styleSelect">
-                        <option>Style 1</option>
-                        <option>Style 2</option>
-                        <option>Style 3</option>
-                        <!-- Add more options as needed -->
-                    </select>
+                    {{ form.image.label_tag }} <!-- This will render the label -->
+                    {{ form.image }} <!-- This will render the input field -->
                 </div>
 
                 <!-- Load Button -->
                 <button type="submit" class="btn btn-primary">Load</button>
             </form>
+            <div class="container-fluid">
+                <h2>Your Images</h2>
+                {% if user_images %}
+                <div class="row">
+                    <div class="col">
+                        <h3>Original</h3>
+                        <img src="{{ user_images.image.url }}" alt="Your original image">
+                    </div>
+                    <div class="col">
+                        <h3>Output</h3>
+                        <img src="{{ user_images.output_image.url }}" alt="Your output image">
+                    </div>
+                </div>
+                {% else %}
+                <p>You have no images.</p>
+                {% endif %}
+            </div>
+
         </main>
     </div>
 </div>

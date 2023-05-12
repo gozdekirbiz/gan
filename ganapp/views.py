@@ -1,123 +1,22 @@
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-from PIL import Image
-import torchvision.transforms as transforms
-import torch.nn as nn
-import torch.nn.functional as F
-from torch import sigmoid
+import tempfile
 from django.shortcuts import render
 from django.contrib.auth import authenticate
 from django.contrib.auth import login
 from django.shortcuts import redirect
 from django.contrib.auth.forms import UserCreationForm
+from django import forms
+from django.contrib.auth.models import User
+from django.contrib import messages
+from django.core.files.base import ContentFile
 
+from ganapp.authentication import send_verification_email, generate_verification_code
+from ganapp.forms import ImageUploadForm
+from ganapp.generator import Cartoonize
+from ganapp.models import UserImage
 
-class ResidualBlock(nn.Module):
-    def __init__(self):
-        super(ResidualBlock, self).__init__()
-        self.conv_1 = nn.Conv2d(
-            in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1
-        )
-        self.conv_2 = nn.Conv2d(
-            in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1
-        )
-        self.norm_1 = nn.BatchNorm2d(256)
-        self.norm_2 = nn.BatchNorm2d(256)
-
-    def forward(self, x):
-        output = self.norm_2(self.conv_2(F.relu(self.norm_1(self.conv_1(x)))))
-        return output + x  # ES
-
-
-class Generator(nn.Module):
-    def __init__(self):
-        super(Generator, self).__init__()
-        self.conv_1 = nn.Conv2d(
-            in_channels=3, out_channels=64, kernel_size=7, stride=1, padding=3
-        )
-        self.norm_1 = nn.BatchNorm2d(64)
-
-        # down-convolution #
-        self.conv_2 = nn.Conv2d(
-            in_channels=64, out_channels=128, kernel_size=3, stride=2, padding=1
-        )
-        self.conv_3 = nn.Conv2d(
-            in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1
-        )
-        self.norm_2 = nn.BatchNorm2d(128)
-
-        self.conv_4 = nn.Conv2d(
-            in_channels=128, out_channels=256, kernel_size=3, stride=2, padding=1
-        )
-        self.conv_5 = nn.Conv2d(
-            in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1
-        )
-        self.norm_3 = nn.BatchNorm2d(256)
-
-        # residual blocks #
-        residualBlocks = []
-        for l in range(8):
-            residualBlocks.append(ResidualBlock())
-        self.res = nn.Sequential(*residualBlocks)
-
-        # up-convolution #
-        self.conv_6 = nn.ConvTranspose2d(
-            in_channels=256,
-            out_channels=128,
-            kernel_size=3,
-            stride=2,
-            padding=1,
-            output_padding=1,
-        )
-        self.conv_7 = nn.ConvTranspose2d(
-            in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1
-        )
-        self.norm_4 = nn.BatchNorm2d(128)
-
-        self.conv_8 = nn.ConvTranspose2d(
-            in_channels=128,
-            out_channels=64,
-            kernel_size=3,
-            stride=2,
-            padding=1,
-            output_padding=1,
-        )
-        self.conv_9 = nn.ConvTranspose2d(
-            in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1
-        )
-        self.norm_5 = nn.BatchNorm2d(64)
-
-        self.conv_10 = nn.Conv2d(
-            in_channels=64, out_channels=3, kernel_size=7, stride=1, padding=3
-        )
-
-    def forward(self, x):
-        x = F.relu(self.norm_1(self.conv_1(x)))
-
-        x = F.relu(self.norm_2(self.conv_3(self.conv_2(x))))
-        x = F.relu(self.norm_3(self.conv_5(self.conv_4(x))))
-
-        x = self.res(x)
-        x = F.relu(self.norm_4(self.conv_7(self.conv_6(x))))
-        x = F.relu(self.norm_5(self.conv_9(self.conv_8(x))))
-
-        x = self.conv_10(x)
-
-        x = sigmoid(x)
-
-        return x
-
-
-# Load the generator model
-generator_path = "ganapp/static/generator_release.pth"
-generator = torch.load(generator_path)
-G = generator["g_state_dict"]
-
-# Create the generator model for inference
-G_inference = Generator()
-G_inference.load_state_dict(G)
-G_inference.eval()
+import os
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def login_view(request):
@@ -154,46 +53,22 @@ def home_view(request):
     if request.method == "POST":
         form = ImageUploadForm(request.POST, request.FILES)
         if form.is_valid():
-            image_file = request.FILES["image"]
-            fs = FileSystemStorage()
-            filename = fs.save(image_file.name, image_file)
-            uploaded_image_url = fs.url(filename)
-
-            # Load and preprocess the image
-            image = Image.open(image_file)
-            preprocess = transforms.Compose(
-                [
-                    transforms.Resize(256),
-                    transforms.ToTensor(),
-                ]
-            )
-            input_tensor = preprocess(image)
-            input_tensor = input_tensor.unsqueeze(0)
-
-            # Generate the output image
-            with torch.no_grad():
-                output_tensor = G_inference(input_tensor)
-            output_image = transforms.ToPILImage()(output_tensor.squeeze().cpu())
-
-            # Save the input and output images in the database
-            generated_image = GeneratedImage(
-                input_image=image_file, output_image=output_image
-            )
-            generated_image.save()
-
-            return render(
-                request,
-                "home.html",
-                {
-                    "form": form,
-                    "input_image": uploaded_image_url,
-                    "output_image": generated_image.output_image.url,
-                },
-            )
+            cartoonizer = Cartoonize()
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp:
+                temp.write(request.FILES["image"].read())
+                cartoon_image = cartoonizer.forward(temp.name)
+                # Save the original image and the cartoonized image to the database
+                user_image = UserImage(
+                    user=request.user,
+                    image=request.FILES["image"],
+                    output_image=cartoon_image,
+                )  # Use image_path here
+                user_image.save()
     else:
         form = ImageUploadForm()
 
-        return render(request, "home.html", {"form": form})
+    user_images = UserImage.objects.filter(user=request.user).last()
+    return render(request, "home.html", {"form": form, "user_images": user_images})
 
 
 def logout_view(request):
@@ -201,15 +76,40 @@ def logout_view(request):
     return redirect("login")
 
 
+class SignUpForm(UserCreationForm):
+    email = forms.EmailField()
+
+    class Meta:
+        model = User
+        fields = ("username", "email", "password1", "password2")
+
+
 def signup(request):
     if request.method == "POST":
-        form = UserCreationForm(request.POST)
+        form = SignUpForm(request.POST)
         if form.is_valid():
             user = form.save()
             login(request, user)
+
+            # Doğrulama kodu oluştur
+            verification_code = generate_verification_code()
+
+            # Doğrulama kodunu e-posta ile gönder
+            send_verification_email(user.email, verification_code)
             return redirect("home")
+        else:
+            error_occured = False
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
+                    error_occured = True
+                    break
+                if error_occured == True:
+                    break
+            # form hatalıysa, kullanıcının doldurduğu değerleri formda göster
+            context = {"form": form}
     else:
-        form = UserCreationForm()
+        form = SignUpForm()
 
     context = {"form": form}
     return render(request, "signup.html", context)
