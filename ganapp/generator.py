@@ -137,17 +137,42 @@ class Cartoonize():
 
     def forward(self, image_path):
 
-        image = PilImage.open(image_path)
-        image = self.transform(image).unsqueeze(0).to(self.device)
+        #image = PilImage.open(image_path)
+        # image = self.transform(image).unsqueeze(0).to(self.device)
+        # output_image = (output_image * 255).astype(np.uint8)
+
+        # output = self.generator(image).detach().cpu().clamp(0, 255).numpy()
+        # output_image = np.transpose(output[0], (1, 2, 0))
+        # plt.imsave('test.png', output_image)
         
-        output = self.generator(image).detach().cpu().clamp(0, 255).numpy()
-        output_image = np.transpose(output[0], (1, 2, 0))
-        plt.imsave('test.png', output_image)
-        
-        output_image = (output_image * 255).astype(np.uint8)
-        output_image = PilImage.fromarray(output_image.astype('uint8'))  # Convert the numpy array to a PIL Image
+        # output_image = (output_image * 255).astype(np.uint8)
+        # output_image = PilImage.fromarray(output_image.astype('uint8'))  # Convert the numpy array to a PIL Image
+
+        # output_io = BytesIO()
+        # output_image.save(output_io, format='PNG')     
+        # return ContentFile(output_io.getvalue(), 'cartoonized.png')
+
+        image = Image.open(image_path)
+        preprocess = transforms.Compose([
+            transforms.Resize(256),
+            transforms.ToTensor(),
+        ])
+        input_tensor = preprocess(image)
+        input_tensor = input_tensor.unsqueeze(0)
+        input_tensor = input_tensor.to(self.device)
+        self.generator = self.generator.to(self.device)
+        result_image = self.generator(input_tensor)
+
+        result_image_np = result_image[0].cpu().detach().numpy()
+        result_image_pil = Image.fromarray(np.uint8(np.transpose(result_image_np, (1, 2, 0)) * 255))
+
+        # Save the result image to a file
+        result_image_pil.save('result_image.jpg')
+        #plt.imsave('test.png', result_image_np)
+                
+        #output_image = (result_image_np * 255).astype(np.uint8)
+        #output_image = PilImage.fromarray(output_image.astype('uint8'))  # Convert the numpy array to a PIL Image
 
         output_io = BytesIO()
-        output_image.save(output_io, format='PNG')     
+        result_image_pil.save(output_io, format='PNG')     
         return ContentFile(output_io.getvalue(), 'cartoonized.png')
-        

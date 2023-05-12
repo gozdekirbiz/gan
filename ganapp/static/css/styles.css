@@ -1,0 +1,14 @@
+.image-card {
+    position: relative;
+}
+
+.delete-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: none;
+}
+
+.image-card:hover .delete-button {
+    display: block;
+}

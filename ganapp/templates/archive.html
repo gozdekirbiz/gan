@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Your Generated Images</h2>
+<div class="container">
+    <div class="row">
+        {% for user_image in user_images %}
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <img src="{{ user_image.output_image.url }}" alt="Generated image" class="card-img-top"
+                    data-toggle="popover" data-placement="top"
+                    data-content="This image was generated using our GAN algorithm.">
+                <div class="card-body">
+                    <h5 class="card-title">Generated Image</h5>
+                    <p class="card-text">This image was generated using our GAN algorithm.</p>
+                    <a href="{{ user_image.output_image.url }}" class="btn btn-primary">View Full Size</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p>No images found.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    $(function () {
+        $('[data-toggle="popover"]').popover()
+    })
+</script>
+
+{% endblock %}

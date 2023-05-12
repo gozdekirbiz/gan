@@ -113,3 +113,38 @@ def signup(request):
 
     context = {"form": form}
     return render(request, "signup.html", context)
+
+
+from django.shortcuts import render
+from .models import UserImage
+
+
+@login_required
+def archive_view(request):
+    # Retrieve all the generated images for the current user
+    user_images = UserImage.objects.filter(user=request.user)
+    return render(request, "archive.html", {"user_images": user_images})
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import UserImage
+from django.contrib.auth.decorators import login_required
+
+
+@login_required
+def delete_image(request, image_id):
+    if request.method == "DELETE":
+        image = UserImage.objects.get(id=image_id)
+        if request.user == image.user:
+            image.delete()
+            return JsonResponse({"success": True})
+        else:
+            return JsonResponse(
+                {"success": False, "error": "Not authorized to delete this image"},
+                status=403,
+            )
+    else:
+        return JsonResponse(
+            {"success": False, "error": "Invalid request method"}, status=400
+        )
