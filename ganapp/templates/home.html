@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
 {% block title %}Art Generation{% endblock %}
+
+{% load static %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -9,13 +12,13 @@
             <div class="sidebar-sticky">
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <img src="#" alt="Logo" style="width: 100%;"> <!-- Replace # with your logo URL -->
+                        <img src="#" alt="Logo" style="width: 100%;">
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">Generate Art</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'archive' %}">Archive</a>
+                        <a class="nav-link" href="#">Archive</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">Settings</a>
@@ -34,8 +37,8 @@
                 {% csrf_token %}
                 <!-- Image Loader -->
                 <div class="form-group">
-                    {{ form.image.label_tag }} <!-- This will render the label -->
-                    {{ form.image }} <!-- This will render the input field -->
+                    {{ form.image.label_tag }}
+                    {{ form.image }}
                 </div>
 
                 <!-- Load Button -->
@@ -58,8 +61,10 @@
                 <p>You have no images.</p>
                 {% endif %}
             </div>
-
         </main>
     </div>
 </div>
+
+<!-- Include Bootstrap CSS -->
+<link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap.min.css' %}">
 {% endblock %}

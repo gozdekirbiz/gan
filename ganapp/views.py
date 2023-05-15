@@ -131,20 +131,17 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import UserImage
 from django.contrib.auth.decorators import login_required
 
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
 
-@login_required
+
+from django.http import JsonResponse
+
+
 def delete_image(request, image_id):
-    if request.method == "DELETE":
-        image = UserImage.objects.get(id=image_id)
-        if request.user == image.user:
-            image.delete()
-            return JsonResponse({"success": True})
-        else:
-            return JsonResponse(
-                {"success": False, "error": "Not authorized to delete this image"},
-                status=403,
-            )
+    if request.method == "POST":
+        image = get_object_or_404(UserImage, id=image_id)
+        image.delete()
+        return JsonResponse({"success": True})
     else:
-        return JsonResponse(
-            {"success": False, "error": "Invalid request method"}, status=400
-        )
+        return JsonResponse({"success": False})
