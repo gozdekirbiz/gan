@@ -1,22 +1,20 @@
 import tempfile
 from django.shortcuts import render
-from django.contrib.auth import authenticate
-from django.contrib.auth import login
+from django.contrib.auth import authenticate, login
 from django.shortcuts import redirect
 from django.contrib.auth.forms import UserCreationForm
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.core.files.base import ContentFile
-
 from ganapp.authentication import send_verification_email, generate_verification_code
 from ganapp.forms import ImageUploadForm
 from ganapp.generator import Cartoonize
 from ganapp.models import UserImage
-
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 
 def login_view(request):
@@ -62,8 +60,11 @@ def home_view(request):
                     user=request.user,
                     image=request.FILES["image"],
                     output_image=cartoon_image,
-                )  # Use image_path here
+                )
                 user_image.save()
+                # Add delay to simulate AI processing time
+                time.sleep(5)  # Adjust the delay duration as needed
+                return JsonResponse({"success": True})
     else:
         form = ImageUploadForm()
 
@@ -91,22 +92,22 @@ def signup(request):
             user = form.save()
             login(request, user)
 
-            # Doğrulama kodu oluştur
+            # Generate verification code
             verification_code = generate_verification_code()
 
-            # Doğrulama kodunu e-posta ile gönder
+            # Send verification code via email
             send_verification_email(user.email, verification_code)
             return redirect("home")
         else:
-            error_occured = False
+            error_occurred = False
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, error)
-                    error_occured = True
+                    error_occurred = True
                     break
-                if error_occured == True:
+                if error_occurred:
                     break
-            # form hatalıysa, kullanıcının doldurduğu değerleri formda göster
+            # If there's an error in the form, display the filled form to the user
             context = {"form": form}
     else:
         form = SignUpForm()

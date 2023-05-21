@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Art Generation</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+</head>
+
+<body>
+    <div class="loading-overlay">
+        <div class="spinner"></div>
+        <p class="loading-text">AI is working...</p>
+    </div>
+
+    <script>
+        setTimeout(function () {
+            window.location.href = "/home/";
+        }, 3000); // Adjust the delay duration as needed
+    </script>
+</body>
+
+</html>
